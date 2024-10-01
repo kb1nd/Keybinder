@@ -5,31 +5,40 @@ const x11 = @cImport({
 });
 const dvui = @import("dvui");
 const sdl = @import("sdl");
-const json = @import("json");
-
 var allocator = std.heap.GeneralPurposeAllocator(.{}){};
-
 const active = switch(Cache.payload) {
     1 => true,
     0 => false,
 };
-
 pub fn main() !void {
     const gpa = allocator.allocator();
-
-    // Parse the cache
-    const data = try std.fs.cwd().openFile("cache.json", .{});
-    defer data.close();
-    const cache = try json.parseFile(data, gpa);
-    errdefer cache.deinit(gpa);
-    defer cache.deinit(gpa);
-
-    // Key repeat sequence varibles
+    const file = try std.fs.cwd().openFile("cache.json", .{});
+    defer file.close();
+    const data = try file.readToEndAlloc(gpa, std.math.maxInt(usize));
+    defer gpa.free(data);
+    const json = try std.json.parseFromSlice(struct {toggleKey: u8, repeatDelay: i8,  bindedKey: u8, port: i8}, gpa, data, .{});
+    defer json.deinit(gpa);
+    const cache = json.value;
     const display = x11.XOpenDisplay(null);
-    const keycode = x11.XKeysymToKeycode(display, x11.XStringToKeysym(cache.bindedKey));
     const event = x11.XEvent;
+    const toggle = struct {
+        const counter = 0;
+        const status = switch(toggle.counter) {
+            1 => {
+                true;
+            },
+            2 => {
+                false;
+                counter -= 2;
+            },
+            else => {
+                false;
+            },
+        }
+    }
+    const keycode = x11.XKeysymToKeycode(display, x11.XStringToKeysym(bindedKey));
     const window = x11.XDefaultRootWindow(display);
-    const key_held = if(event.keycode == keycode and active == true) {
+    const key_held = if(event.keycode == keycode and active == true and toggle.status == false) {
         if(std.mem.eql(u8, event.type, "KeyPress")) {
             true;
         } else if(std.mem.eql(u8, event.type, "KeyRelease")) {
@@ -38,21 +47,16 @@ pub fn main() !void {
     } else {
         false;
     };
-
-    // Create the socket server
     try network.init();
     defer network.deinit();
-
     var server = try network.Socket.create(.ipv4, .tcp);
     defer server.close();
-
     try server.bind(.{
         .address = .{
             .ipv4 = network.Address.IPv4.any
         },
         .port = cache.port,
     });
-
     try server.listen();
     std.log.info("listening at {}\n", .{
         try server.getLocalEndPoint()
@@ -65,8 +69,6 @@ pub fn main() !void {
             .handle_frame = async client.handle(),
         };
     }
-
-    // Init SDL backend (creates and owns OS window)
     var backend = try sdl.initWindow(.{
         .allocator = gpa,
         .size = .{
@@ -82,11 +84,8 @@ pub fn main() !void {
         .icon = @embedFile("appIcon.png"),
     });
     defer backend.deinit();
-
-    // Init dvui Window (maps onto a single OS window)
     var win = try dvui.Window.init(@src(), gpa, backend.backend(), .{});
     defer win.deinit();
-
     x11.XSelectInput(display, window, x11.KeyPressMask | x11.KeyReleaseMask);
     x11.XMapWindow(display, window);
     x11.XNextEvent(display, &event);
@@ -95,35 +94,20 @@ pub fn main() !void {
         x11.XSendEvent(display, window, 1, x11.KeyPressMask, &event);
         x11.XFlush(display);
     }
-
     main_loop: while (true) {
-        // beginWait coordinates with waitTime below to run frames only when needed
+        if(event.keycode == x11.XKeysymToKeycode(display, x11.XStringToKeysym(cache.toggleKey))) {
+            toggle.counter += 1;
+        }
         const nstime = win.beginWait(backend.hasEvent());
-
-        // marks the beginning of a frame for dvui, can call dvui functions after this
         try win.begin(nstime);
-
-        // send all SDL events to dvui for processing
         const quit = try backend.addAllEvents(&win);
         if (quit) break :main_loop;
-
-        // if dvui widgets might not cover the whole window, then need to clear
-        // the previous frame's render
         _ = sdl.c.SDL_SetRenderDrawColor(backend.renderer, 0, 0, 0, 255);
         _ = sdl.c.SDL_RenderClear(backend.renderer);
-
         try gui_frame();
-
-        // marks end of dvui frame, don't call dvui functions after this
         const end_micros = try win.end(.{});
-
-        // cursor management
         backend.setCursor(win.cursorRequested());
-
-        // render frame to OS
         backend.renderPresent();
-
-        // waitTime and beginWait combine to achieve variable framerates
         const wait_event_micros = win.waitTime(end_micros, null);
         backend.waitEventTimeout(wait_event_micros);
     }
@@ -138,12 +122,12 @@ fn gui_frame() !void {
             },
         });
         defer scroll.deinit();
-        try dvui.labelNoFmt(@src(), "Hello, this is a box.", .{
+        var header1 = try dvui.labelNoFmt(@src(), "Toggle Keybind", .{
             .margin = .{
                 .x = 4
             },
         });
-
+        defer header1.deinit();
         var box = try dvui.box(@src(), .horizontal, .{
             .expand = .horizontal,
             .min_size_content = .{
@@ -162,7 +146,6 @@ const Client = struct {
     conn: network.Socket,
     handle_frame: @Frame(Client.handle),
     allocator: allocator,
-
     fn handle(self: *Client, gpa: Client.allocator) !void {
         allocator = gpa.allocator();
         while (true) {

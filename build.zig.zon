@@ -11,9 +11,5 @@
             .url = "https://github.com/david-vanderson/dvui/archive/3591bb634fd26e824f735c6264b1e49e29fa3bd8.tar.gz",
             .hash = "1220193a61ac0271dca579df865ee45e11df370af8b7da0430135403be9792f9bf56",
         },
-        .@"zig-json" = .{
-            .url = "https://codeload.github.com/nektro/zig-json/tar.gz/master",
-            .hash = "122075f72553afd9ec38e365164171ca4af766112f2d1adb99864ee084e9b5560a8d",
-        },
     },
 }
