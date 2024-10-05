@@ -1,6 +1,8 @@
 .{
     .name = "Keybinder's Keybinder",
+    .description = "The Keybinder for keybinding in Minecraft",
     .version = "0.0.1",
+    .license = "MIT",
     .paths = .{"."},
     .dependencies = .{
         .network = .{
