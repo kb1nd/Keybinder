@@ -29,7 +29,7 @@ pub fn build(b: *std.Build) !void {
         exe.root_module.addImport("sdl", dvui_dep.module("SDLBackend"));
         exe.root_module.addImport("network", network_dep.module("network"));
         exe.addCSourceFile(.{
-            .file = b.path("X11/lib/Xlib.h"),
+            .file = b.path("v1/X11/lib/Xlib.h"),
         });
 
         const compile_step = b.step("compile-" ++ ver, "Compile " ++ ver);
