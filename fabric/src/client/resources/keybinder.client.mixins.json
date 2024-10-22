@@ -1,0 +1,11 @@
+{
+	"required": true,
+	"package": "keybinders.keybinder.mixin.client",
+	"compatibilityLevel": "JAVA_21",
+	"client": [
+		"keybinderMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

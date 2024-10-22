@@ -1,0 +1,37 @@
+{
+	"schemaVersion": 1,
+	"id": "keybinders-keybinder",
+	"version": "${version}",
+	"name": "Keybinder's Keybinder",
+	"description": "Optimizes the game for keybinding, made to work with the Windows executable",
+	"authors": [
+		"Keyb1nder"
+	],
+	"contact": {
+		"github": "https://github.com/keyb1nder",
+	},
+	"license": "CC0-1.0",
+	"icon": "assets/keybinder/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"keybinders.keybinder.ExampleMod"
+		],
+		"client": [
+			"keybinders.keybinder.ExampleModClient"
+		]
+	},
+	"mixins": [
+		"keybinder.mixins.json",
+		{
+			"config": "keybinder.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.16.2",
+		"minecraft": "~1.21.1",
+		"java": ">=21",
+		"fabric-api": "*"
+	},
+}
