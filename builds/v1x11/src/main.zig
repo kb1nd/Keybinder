@@ -56,6 +56,12 @@ pub fn main() !void {
     var gui = try dvui.Window.init(@src(), gpa, backend.backend(), .{});
     defer gui.deinit();
     x11.XSelectInput(display, window, masks);
+    while (Sequence.status == true) {
+        event.keycode == x11.XKeysymToKeycode(display, x11.XStringToKeysym(Cache.bindedKey));
+        x11.XSendEvent(display, window, 1, x11.KeyPressMask, &event);
+        x11.XFlush(display);
+        std.time.sleep(Cache.repeatDelay * 1000);
+    }
     main_loop: while (true) {
         x11.XNextEvent(display, &event);
         if (std.mem.eql(u8, event.type, "KeyPress")) {
@@ -64,14 +70,6 @@ pub fn main() !void {
         } else if (std.mem.eql(u8, event.type, "KeyRelease")) {
             Sequence.keycode = event.keycode;
             Sequence.type = event.type;
-        }
-        switch (Sequence.status) {
-            true => {
-                event.keycode == x11.XKeysymToKeycode(display, x11.XStringToKeysym(Cache.bindedKey));
-                x11.XSendEvent(display, window, 1, x11.KeyPressMask, &event);
-                x11.XFlush(display);
-            },
-            else => {},
         }
         const client = try gpa.create(Client);
         client.* =

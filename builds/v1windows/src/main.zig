@@ -89,17 +89,12 @@ pub fn main() !void
         .handle_frame = async client.handle(),
     };
     win32.SetWindowsHookEx(win32.WH_KEYBOARD_LL, hookProc, hwnd, 0);
+    while(Sequence.status == true) {
+        win32.SendInput(inputs.len, inputs.ptr, @sizeOf(win32.INPUT));
+        std.time.sleep(Cache.repeatDelay * 1000);
+    }
     main_loop: while (true)
     {
-        switch (Sequence.status)
-        {
-            true =>
-            {
-                win32.SendInput(inputs.len, inputs.ptr, @sizeOf(win32.INPUT));
-                break;
-            },
-            else => {},
-        }
         const nstime = gui.beginWait(backend.hasEvent());
         try gui.begin(nstime);
         const quit = try backend.addAllEvents(&gui);
