@@ -55,6 +55,12 @@ pub fn main() !void {
     defer backend.deinit();
     var gui = try dvui.Window.init(@src(), gpa, backend.backend(), .{});
     defer gui.deinit();
+    const client = try gpa.create(Client);
+    client.* =
+        Client{
+        .conn = try server.accept(),
+        .handle_frame = async client.handle(),
+    };
     x11.XSelectInput(display, window, masks);
     while (Sequence.status == true) {
         event.keycode == x11.XKeysymToKeycode(display, x11.XStringToKeysym(Cache.bindedKey));
@@ -71,12 +77,6 @@ pub fn main() !void {
             Sequence.keycode = event.keycode;
             Sequence.type = event.type;
         }
-        const client = try gpa.create(Client);
-        client.* =
-            Client{
-            .conn = try server.accept(),
-            .handle_frame = async client.handle(),
-        };
         const nstime = gui.beginWait(backend.hasEvent());
         try gui.begin(nstime);
         const quit = try backend.addAllEvents(&gui);
