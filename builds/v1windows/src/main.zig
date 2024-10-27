@@ -2,7 +2,7 @@ const std = @import("std");
 const network = @import("network");
 const win32 = @import("../lib/win32.zig");
 const dvui = @import("dvui");
-const sdl = @import("sdl"):
+const sdl = @import("sdl");
 var allocator = std.heap.GeneralPurposeAllocator(.{}){};
 pub fn main() !void
 {
@@ -26,7 +26,7 @@ pub fn main() !void
     {
         const keycode = undefined;
         const @"type" = undefined;
-        const status = if (keycode == win32.VkKeyScanW(@intCast(win32.WCAR, Cache.bindedKey)) and Socket.toggle == true and std.mem.eql(u8, @"type", "KeyPress")) true else false;
+        const status = if(keycode == win32.VkKeyScanW(@intCast(win32.WCAR, Cache.bindedKey)) and Socket.toggle == true and std.mem.eql(u8, @"type", "KeyPress")) true else false;
     };
     try network.init();
     defer network.deinit();
@@ -81,6 +81,13 @@ pub fn main() !void
     defer backend.deinit();
     var gui = try dvui.Window.init(@src(), gpa, backend.backend(), .{});
     defer gui.deinit();
+    const client = try gpa.create(Client);
+    client.* =
+    Client
+    {
+        .conn = try server.accept(),
+        .handle_frame = async client.handle(),
+    };
     win32.SetWindowsHookEx(win32.WH_KEYBOARD_LL, hookProc, hwnd, 0);
     main_loop: while (true)
     {
@@ -93,13 +100,6 @@ pub fn main() !void
             },
             else => {},
         }
-        const client = try gpa.create(Client);
-        client.* =
-        Client
-        {
-            .conn = try server.accept(),
-            .handle_frame = async client.handle(),
-        };
         const nstime = gui.beginWait(backend.hasEvent());
         try gui.begin(nstime);
         const quit = try backend.addAllEvents(&gui);
@@ -141,14 +141,14 @@ fn frame() !void
             .color_fill = .{ .name = .fill_window },
         });
         defer scroll.deinit();
-    }
+    },
     {
         var header1 = try dvui.labelNoFmt(@src(), "Toggle Keybind",
         .{
             .margin = .{ .x = 4 },
         });
         defer header1.deinit();
-    }
+    },
     {
         var box = try dvui.box(@src(), .horizontal,
         .{
@@ -158,8 +158,8 @@ fn frame() !void
             .margin = .{ .x = 8, .w = 8 },
         });
         defer box.deinit();
-    }
-}
+    },
+};
 const Client =
 struct
 {
